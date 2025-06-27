@@ -25,15 +25,23 @@ internal fun LogMessage.detail(service: CBService) {
 
 internal fun LogMessage.detail(characteristic: CBCharacteristic) {
     detail(
-        characteristic.service!!.UUID.toUuid(),
+        characteristic.service?.UUID?.toUuid().toString(),
         characteristic.UUID.toUuid(),
     )
 }
 
 internal fun LogMessage.detail(descriptor: CBDescriptor) {
-    detail(
-        descriptor.characteristic!!.service!!.UUID.toUuid(),
-        descriptor.characteristic!!.UUID.toUuid(),
-        descriptor.UUID.toUuid(),
-    )
+    descriptor.characteristic?.let { characteristic ->
+        characteristic.service?.let { service ->
+            detail(
+                service.UUID.toUuid(),
+                characteristic.UUID.toUuid(),
+                descriptor.UUID.toUuid(),
+            )
+        } ?: run {
+            detail("error", "Service is null for descriptor ${descriptor.UUID.UUIDString}")
+        }
+    } ?: run {
+        detail("error", "Characteristic is null for descriptor ${descriptor.UUID.UUIDString}")
+    }
 }
