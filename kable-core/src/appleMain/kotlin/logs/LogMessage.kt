@@ -19,21 +19,50 @@ internal fun LogMessage.detail(error: NSError?) {
     if (error != null) detail("error", error.toString())
 }
 
-internal fun LogMessage.detail(service: CBService) {
-    detail("service", service.UUID.UUIDString)
+private fun LogMessage.detailService(service: CBService? = null) {
+    detail("service", service?.UUID?.UUIDString ?: "Unknown UUID")
 }
 
-internal fun LogMessage.detail(characteristic: CBCharacteristic) {
+private fun LogMessage.detailCharacteristic(characteristic: CBCharacteristic) {
+    val serviceUuid = characteristic.service
+        ?.UUID
+        ?.toUuid()
+    if (serviceUuid == null) {
+        detail("service", "Unknown (null value)")
+        return
+    }
+
+    detail(serviceUuid, characteristic.UUID.toUuid())
+}
+
+private fun LogMessage.detailDescriptor(descriptor: CBDescriptor) {
+    val characteristic = descriptor.characteristic
+    if (characteristic == null) {
+        detail("characteristic", "Unknown (null value)")
+        return
+    }
+
+    val serviceUuid = characteristic.service
+        ?.UUID
+        ?.toUuid()
+
+    if (serviceUuid == null) {
+        detail("service", "Unknown (null value)")
+        return
+    }
+
     detail(
-        characteristic.service!!.UUID.toUuid(),
+        serviceUuid,
         characteristic.UUID.toUuid(),
-    )
-}
-
-internal fun LogMessage.detail(descriptor: CBDescriptor) {
-    detail(
-        descriptor.characteristic!!.service!!.UUID.toUuid(),
-        descriptor.characteristic!!.UUID.toUuid(),
         descriptor.UUID.toUuid(),
     )
+}
+
+internal fun LogMessage.detail(attribute: CBAttribute){
+    when(attribute) {
+        is CBService -> detailService(attribute)
+        is CBCharacteristic -> detailCharacteristic(attribute)
+        is CBDescriptor -> detailDescriptor(attribute)
+        else -> detail("Unknown (Unrecognized)", attribute.toString())
+    }
 }
