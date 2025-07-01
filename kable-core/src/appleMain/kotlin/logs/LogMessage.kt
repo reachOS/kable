@@ -3,6 +3,7 @@ package com.juul.kable.logs
 import com.juul.kable.logs.Logging.DataProcessor.Operation
 import com.juul.kable.toByteArray
 import com.juul.kable.toUuid
+import platform.CoreBluetooth.CBAttribute
 import platform.CoreBluetooth.CBCharacteristic
 import platform.CoreBluetooth.CBDescriptor
 import platform.CoreBluetooth.CBService
@@ -19,26 +20,26 @@ internal fun LogMessage.detail(error: NSError?) {
     if (error != null) detail("error", error.toString())
 }
 
-internal fun LogMessage.detail(service: CBService? = null) {
+private fun LogMessage.detailService(service: CBService? = null) {
     detail("service", service?.UUID?.UUIDString ?: "Unknown UUID")
 }
 
-internal fun LogMessage.detail(characteristic: CBCharacteristic) {
+private fun LogMessage.detailCharacteristic(characteristic: CBCharacteristic) {
     val serviceUuid = characteristic.service
         ?.UUID
         ?.toUuid()
     if (serviceUuid == null) {
-        detail("service", "Unknown")
+        detail("service", "Unknown (null value)")
         return
     }
 
     detail(serviceUuid, characteristic.UUID.toUuid())
 }
 
-internal fun LogMessage.detail(descriptor: CBDescriptor) {
+private fun LogMessage.detailDescriptor(descriptor: CBDescriptor) {
     val characteristic = descriptor.characteristic
     if (characteristic == null) {
-        detail("characteristic", "Unknown")
+        detail("characteristic", "Unknown (null value)")
         return
     }
 
@@ -47,7 +48,7 @@ internal fun LogMessage.detail(descriptor: CBDescriptor) {
         ?.toUuid()
 
     if (serviceUuid == null) {
-        detail("service", "Unknown")
+        detail("service", "Unknown (null value)")
         return
     }
 
@@ -56,4 +57,13 @@ internal fun LogMessage.detail(descriptor: CBDescriptor) {
         characteristic.UUID.toUuid(),
         descriptor.UUID.toUuid(),
     )
+}
+
+internal fun LogMessage.detail(attribute: CBAttribute){
+    when(attribute) {
+        is CBService -> detailService(attribute)
+        is CBCharacteristic -> detailCharacteristic(attribute)
+        is CBDescriptor -> detailDescriptor(attribute)
+        else -> detail("Unknown (Unrecognized)", attribute.toString())
+    }
 }
