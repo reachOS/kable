@@ -137,6 +137,16 @@ public interface AndroidPeripheral : Peripheral {
     public suspend fun requestMtu(mtu: Int): Int
 
     /**
+     * Clears Android's cached GATT database for this device (hidden `BluetoothGatt.refresh()`) and discovers services
+     * again. For bonded peripherals whose services changed without a Service Changed indication, Android otherwise keeps
+     * serving the stale cache across connections.
+     *
+     * @return `false` if the refresh call isn't available; services are rediscovered either way.
+     * @throws NotConnectedException if invoked without an established [connection][Peripheral.connect].
+     */
+    public suspend fun refreshServices(): Boolean
+
+    /**
      * @see Peripheral.write
      * @throws NotConnectedException if invoked without an established [connection][connect].
      * @throws GattWriteException if underlying [BluetoothGatt] write operation call fails.

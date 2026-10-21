@@ -43,10 +43,12 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
+import kotlinx.coroutines.delay
 
 // Number of service discovery attempts to make if no services are discovered.
 // https://github.com/JuulLabs/kable/issues/295
 private const val DISCOVER_SERVICES_RETRIES = 5
+private const val GATT_REFRESH_SETTLE_MS = 1_000L
 
 private const val DEFAULT_ATT_MTU = 23
 private const val ATT_MTU_HEADER_SIZE = 3
@@ -182,6 +184,24 @@ internal class BluetoothDeviceAndroidPeripheral(
         unwrapCancellationExceptions {
             onServicesDiscovered(ServicesDiscoveredPeripheral(this))
         }
+    }
+
+    override suspend fun refreshServices(): Boolean {
+        val gatt = connectionOrThrow().gatt
+        val refreshed = try {
+            gatt.javaClass.getMethod("refresh").invoke(gatt) as Boolean
+        } catch (e: ReflectiveOperationException) {
+            logger.warn(e) { message = "BluetoothGatt.refresh() unavailable" }
+            false
+        }
+        logger.debug {
+            message = "refreshServices"
+            detail("refreshed", refreshed.toString())
+        }
+        // refresh() only queues the cache clear; discovering right away can still return the old database.
+        if (refreshed) delay(GATT_REFRESH_SETTLE_MS)
+        discoverServices()
+        return refreshed
     }
 
     override suspend fun requestMtu(mtu: Int): Int {
